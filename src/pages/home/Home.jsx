@@ -3,7 +3,7 @@ import './Home.css'
 import Header from '../../components/header/Header'
 import ExplorMenu from '../../components/ExplorMenu/ExplorMenu'
 import FoodDisplay from '../../components/FoodDisplay/FoodDisplay'
-import AppDownload from '../../components/Appdownload/Appdownload'
+import AppDownload from '../../components/Appdownload/AppDownload'
 
 const Home = () => {
   const [category, setCategory]=useState('All')
