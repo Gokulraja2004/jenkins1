@@ -28,3 +28,5 @@ jobs:
 
       - name: Success Message
         run: echo "Automation Successful"
+      - name: Restart PM2
+        run: pm2 restart all
