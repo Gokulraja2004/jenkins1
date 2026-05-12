@@ -7,22 +7,18 @@ pipeline {
     }
 
     environment {
-        DEV_HOST  = "3.109.156.48"
-        QA_HOST   = "15.206.184.2"
-        PROD_HOST = "52.66.225.201"
+        DEV_HOST  = credentials('dev-host')
+        QA_HOST   = credentials('qa-host')
+        PROD_HOST = credentials('prod-host')
     }
 
     stages {
-
-        // ================= INSTALL =================
 
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
-
-        // ================= BUILD =================
 
         stage('Build React App') {
             steps {
@@ -48,11 +44,16 @@ pipeline {
                     )
                 ]) {
 
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$DEV_HOST "
+                        sudo rm -rf /home/ubuntu/dev-app &&
+                        mkdir -p /home/ubuntu/dev-app
+                    "
+                    '''
+
                     sh 'chmod +x deploy-dev.sh'
 
-                    sh '''
-                    ./deploy-dev.sh $DEV_HOST $USER $PASS
-                    '''
+                    sh './deploy-dev.sh $DEV_HOST $USER $PASS'
                 }
             }
         }
@@ -75,11 +76,16 @@ pipeline {
                     )
                 ]) {
 
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$QA_HOST "
+                        sudo rm -rf /home/ubuntu/qa-app &&
+                        mkdir -p /home/ubuntu/qa-app
+                    "
+                    '''
+
                     sh 'chmod +x deploy-qa.sh'
 
-                    sh '''
-                    ./deploy-qa.sh $QA_HOST $USER $PASS
-                    '''
+                    sh './deploy-qa.sh $QA_HOST $USER $PASS'
                 }
             }
         }
@@ -115,11 +121,16 @@ pipeline {
                     )
                 ]) {
 
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$PROD_HOST "
+                        sudo rm -rf /home/ubuntu/prod-app &&
+                        mkdir -p /home/ubuntu/prod-app
+                    "
+                    '''
+
                     sh 'chmod +x deploy-prod.sh'
 
-                    sh '''
-                    ./deploy-prod.sh $PROD_HOST $USER $PASS
-                    '''
+                    sh './deploy-prod.sh $PROD_HOST $USER $PASS'
                 }
             }
         }
