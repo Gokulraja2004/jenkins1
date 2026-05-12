@@ -3,16 +3,18 @@ pipeline {
     agent any
 
     triggers {
-      pollSCM('* * * * *')
+        pollSCM('H/1 * * * *')
     }
 
     environment {
-        DEV_SERVER  = "ubuntu@3.109.156.48"
-        QA_SERVER   = "ubuntu@15.206.184.2"
-        PROD_SERVER = "ubuntu@52.66.225.201"
+        DEV_HOST  = "3.109.156.48"
+        QA_HOST   = "15.206.184.2"
+        PROD_HOST = "52.66.225.201"
     }
 
     stages {
+
+        // ================= INSTALL =================
 
         stage('Install Dependencies') {
             steps {
@@ -20,11 +22,15 @@ pipeline {
             }
         }
 
+        // ================= BUILD =================
+
         stage('Build React App') {
             steps {
                 sh 'npm run build'
             }
         }
+
+        // ================= DEV =================
 
         stage('Deploy to DEV') {
 
@@ -34,26 +40,31 @@ pipeline {
 
             steps {
 
-                sh '''
-                ssh -o StrictHostKeyChecking=no $DEV_SERVER "
-                    sudo rm -rf /home/ubuntu/dev-app &&
-                    mkdir -p /home/ubuntu/dev-app
-                "
-                '''
+                sshagent(credentials: ['dev-server-key']) {
 
-                sh '''
-                scp -o StrictHostKeyChecking=no -r dist/* $DEV_SERVER:/home/ubuntu/dev-app
-                '''
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@$DEV_HOST "
+                        sudo rm -rf /home/ubuntu/dev-app &&
+                        mkdir -p /home/ubuntu/dev-app
+                    "
+                    '''
 
-                sh '''
-                ssh -o StrictHostKeyChecking=no $DEV_SERVER "
-                    sudo rm -rf /var/www/html/* &&
-                    sudo cp -r /home/ubuntu/dev-app/* /var/www/html/ &&
-                    sudo systemctl restart nginx
-                "
-                '''
+                    sh '''
+                    scp -o StrictHostKeyChecking=no -r dist/* ubuntu@$DEV_HOST:/home/ubuntu/dev-app
+                    '''
+
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@$DEV_HOST "
+                        sudo rm -rf /var/www/html/* &&
+                        sudo cp -r /home/ubuntu/dev-app/* /var/www/html/ &&
+                        sudo systemctl restart nginx
+                    "
+                    '''
+                }
             }
         }
+
+        // ================= QA =================
 
         stage('Deploy to QA') {
 
@@ -63,26 +74,31 @@ pipeline {
 
             steps {
 
-                sh '''
-                ssh -o StrictHostKeyChecking=no $QA_SERVER "
-                    sudo rm -rf /home/ubuntu/qa-app &&
-                    mkdir -p /home/ubuntu/qa-app
-                "
-                '''
+                sshagent(credentials: ['qa-id']) {
 
-                sh '''
-                scp -o StrictHostKeyChecking=no -r dist/* $QA_SERVER:/home/ubuntu/qa-app
-                '''
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@$QA_HOST "
+                        sudo rm -rf /home/ubuntu/qa-app &&
+                        mkdir -p /home/ubuntu/qa-app
+                    "
+                    '''
 
-                sh '''
-                ssh -o StrictHostKeyChecking=no $QA_SERVER "
-                    sudo rm -rf /var/www/html/* &&
-                    sudo cp -r /home/ubuntu/qa-app/* /var/www/html/ &&
-                    sudo systemctl restart nginx
-                "
-                '''
+                    sh '''
+                    scp -o StrictHostKeyChecking=no -r dist/* ubuntu@$QA_HOST:/home/ubuntu/qa-app
+                    '''
+
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@$QA_HOST "
+                        sudo rm -rf /var/www/html/* &&
+                        sudo cp -r /home/ubuntu/qa-app/* /var/www/html/ &&
+                        sudo systemctl restart nginx
+                    "
+                    '''
+                }
             }
         }
+
+        // ================= PROD APPROVAL =================
 
         stage('Approval for Production') {
 
@@ -95,6 +111,8 @@ pipeline {
             }
         }
 
+        // ================= PROD =================
+
         stage('Deploy to PROD') {
 
             when {
@@ -103,24 +121,27 @@ pipeline {
 
             steps {
 
-                sh '''
-                ssh -o StrictHostKeyChecking=no $PROD_SERVER "
-                    sudo rm -rf /home/ubuntu/prod-app &&
-                    mkdir -p /home/ubuntu/prod-app
-                "
-                '''
+                sshagent(credentials: ['prod-id']) {
 
-                sh '''
-                scp -o StrictHostKeyChecking=no -r dist/* $PROD_SERVER:/home/ubuntu/prod-app
-                '''
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST "
+                        sudo rm -rf /home/ubuntu/prod-app &&
+                        mkdir -p /home/ubuntu/prod-app
+                    "
+                    '''
 
-                sh '''
-                ssh -o StrictHostKeyChecking=no $PROD_SERVER "
-                    sudo rm -rf /var/www/html/* &&
-                    sudo cp -r /home/ubuntu/prod-app/* /var/www/html/ &&
-                    sudo systemctl restart nginx
-                "
-                '''
+                    sh '''
+                    scp -o StrictHostKeyChecking=no -r dist/* ubuntu@$PROD_HOST:/home/ubuntu/prod-app
+                    '''
+
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST "
+                        sudo rm -rf /var/www/html/* &&
+                        sudo cp -r /home/ubuntu/prod-app/* /var/www/html/ &&
+                        sudo systemctl restart nginx
+                    "
+                    '''
+                }
             }
         }
     }
