@@ -9,18 +9,15 @@ pipeline {
 
     stages {
 
-        stage('Clone Repository') {
-            steps {
-                git branch: "${env.BRANCH_NAME}",
-                url: 'https://github.com/Gokulraja2004/jenkins1.git'
-            }
-        }
+        // ================= INSTALL =================
 
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
+
+        // ================= BUILD =================
 
         stage('Build React App') {
             steps {
@@ -90,7 +87,7 @@ pipeline {
             }
         }
 
-        // ================= PROD =================
+        // ================= PROD APPROVAL =================
 
         stage('Approval for Production') {
 
@@ -102,6 +99,8 @@ pipeline {
                 input 'Deploy to Production?'
             }
         }
+
+        // ================= PROD =================
 
         stage('Deploy to PROD') {
 
@@ -130,6 +129,17 @@ pipeline {
                 "
                 '''
             }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'Pipeline Success'
+        }
+
+        failure {
+            echo 'Pipeline Failed'
         }
     }
 }
