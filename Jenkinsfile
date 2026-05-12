@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DEV_SERVER = "ubuntu@3.109.156.48"
-        QA_SERVER = "ubuntu@15.206.184.2"
+        DEV_SERVER  = "ubuntu@3.109.156.48"
+        QA_SERVER   = "ubuntu@15.206.184.2"
         PROD_SERVER = "ubuntu@52.66.225.201"
     }
 
@@ -11,7 +11,7 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git branch: 'main',
+                git branch: "${env.BRANCH_NAME}",
                 url: 'https://github.com/Gokulraja2004/jenkins1.git'
             }
         }
@@ -28,7 +28,14 @@ pipeline {
             }
         }
 
+        // ================= DEV =================
+
         stage('Deploy to DEV') {
+
+            when {
+                branch 'dev'
+            }
+
             steps {
 
                 sh '''
@@ -44,8 +51,6 @@ pipeline {
 
                 sh '''
                 ssh -o StrictHostKeyChecking=no $DEV_SERVER "
-                    sudo apt update -y &&
-                    sudo apt install nginx -y &&
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/dev-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
@@ -54,7 +59,14 @@ pipeline {
             }
         }
 
+        // ================= QA =================
+
         stage('Deploy to QA') {
+
+            when {
+                branch 'qa'
+            }
+
             steps {
 
                 sh '''
@@ -70,8 +82,6 @@ pipeline {
 
                 sh '''
                 ssh -o StrictHostKeyChecking=no $QA_SERVER "
-                    sudo apt update -y &&
-                    sudo apt install nginx -y &&
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/qa-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
@@ -80,13 +90,25 @@ pipeline {
             }
         }
 
+        // ================= PROD =================
+
         stage('Approval for Production') {
+
+            when {
+                branch 'main'
+            }
+
             steps {
                 input 'Deploy to Production?'
             }
         }
 
         stage('Deploy to PROD') {
+
+            when {
+                branch 'main'
+            }
+
             steps {
 
                 sh '''
@@ -102,24 +124,12 @@ pipeline {
 
                 sh '''
                 ssh -o StrictHostKeyChecking=no $PROD_SERVER "
-                    sudo apt update -y &&
-                    sudo apt install nginx -y &&
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/prod-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
                 "
                 '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline Success'
-        }
-
-        failure {
-            echo 'Pipeline Failed'
         }
     }
 }
