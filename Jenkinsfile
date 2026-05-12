@@ -2,10 +2,6 @@ pipeline {
 
     agent any
 
-    triggers {
-        pollSCM('H/1 * * * *')
-    }
-
     environment {
         DEV_SERVER  = "ubuntu@3.109.156.48"
         QA_SERVER   = "ubuntu@15.206.184.2"
@@ -16,8 +12,9 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git branch: "${env.BRANCH_NAME}",
-                url: 'https://github.com/Gokulraja2004/jenkins1.git'
+                checkout scm
+
+                sh 'echo Current Branch: $BRANCH_NAME'
             }
         }
 
@@ -36,9 +33,7 @@ pipeline {
         stage('Deploy to DEV') {
 
             when {
-                expression {
-                    env.BRANCH_NAME == "dev"
-                }
+                branch 'dev'
             }
 
             steps {
@@ -58,8 +53,6 @@ pipeline {
 
                 sh """
                     ssh -o StrictHostKeyChecking=no ${DEV_SERVER} '
-                    sudo apt update -y &&
-                    sudo apt install nginx -y &&
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/dev-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
@@ -71,9 +64,7 @@ pipeline {
         stage('Deploy to QA') {
 
             when {
-                expression {
-                    env.BRANCH_NAME == "qa"
-                }
+                branch 'qa'
             }
 
             steps {
@@ -93,8 +84,6 @@ pipeline {
 
                 sh """
                     ssh -o StrictHostKeyChecking=no ${QA_SERVER} '
-                    sudo apt update -y &&
-                    sudo apt install nginx -y &&
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/qa-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
@@ -106,9 +95,7 @@ pipeline {
         stage('Deploy to PROD') {
 
             when {
-                expression {
-                    env.BRANCH_NAME == "main"
-                }
+                branch 'main'
             }
 
             steps {
@@ -128,8 +115,6 @@ pipeline {
 
                 sh """
                     ssh -o StrictHostKeyChecking=no ${PROD_SERVER} '
-                    sudo apt update -y &&
-                    sudo apt install nginx -y &&
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/prod-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
