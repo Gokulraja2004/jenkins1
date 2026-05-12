@@ -2,21 +2,17 @@ pipeline {
 
     agent any
 
+    triggers {
+        pollSCM('H/1 * * * *')
+    }
+
     environment {
-        DEV_SERVER  = "ubuntu@3.109.156.48"
-        QA_SERVER   = "ubuntu@15.206.184.2"
-        PROD_SERVER = "ubuntu@52.66.225.201"
+        DEV_HOST  = credentials('dev-host')
+        QA_HOST   = credentials('qa-host')
+        PROD_HOST = credentials('prod-host')
     }
 
     stages {
-
-        stage('Clone Repository') {
-            steps {
-                checkout scm
-
-                sh 'echo Current Branch: $BRANCH_NAME'
-            }
-        }
 
         stage('Install Dependencies') {
             steps {
@@ -30,6 +26,8 @@ pipeline {
             }
         }
 
+        // ================= DEV =================
+
         stage('Deploy to DEV') {
 
             when {
@@ -38,28 +36,29 @@ pipeline {
 
             steps {
 
-                echo "Deploying to DEV"
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dev-id',
+                        usernameVariable: 'USER',
+                        passwordVariable: 'PASS'
+                    )
+                ]) {
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${DEV_SERVER} '
-                    sudo rm -rf /home/ubuntu/dev-app &&
-                    mkdir -p /home/ubuntu/dev-app
-                    '
-                """
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$DEV_HOST "
+                        sudo rm -rf /home/ubuntu/dev-app &&
+                        mkdir -p /home/ubuntu/dev-app
+                    "
+                    '''
 
-                sh """
-                    scp -o StrictHostKeyChecking=no -r dist/* ${DEV_SERVER}:/home/ubuntu/dev-app
-                """
+                    sh 'chmod +x deploy-dev.sh'
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${DEV_SERVER} '
-                    sudo rm -rf /var/www/html/* &&
-                    sudo cp -r /home/ubuntu/dev-app/* /var/www/html/ &&
-                    sudo systemctl restart nginx
-                    '
-                """
+                    sh './deploy-dev.sh $DEV_HOST $USER $PASS'
+                }
             }
         }
+
+        // ================= QA =================
 
         stage('Deploy to QA') {
 
@@ -69,28 +68,42 @@ pipeline {
 
             steps {
 
-                echo "Deploying to QA"
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'qa2-id',
+                        usernameVariable: 'USER',
+                        passwordVariable: 'PASS'
+                    )
+                ]) {
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${QA_SERVER} '
-                    sudo rm -rf /home/ubuntu/qa-app &&
-                    mkdir -p /home/ubuntu/qa-app
-                    '
-                """
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$QA_HOST "
+                        sudo rm -rf /home/ubuntu/qa-app &&
+                        mkdir -p /home/ubuntu/qa-app
+                    "
+                    '''
 
-                sh """
-                    scp -o StrictHostKeyChecking=no -r dist/* ${QA_SERVER}:/home/ubuntu/qa-app
-                """
+                    sh 'chmod +x deploy-qa.sh'
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${QA_SERVER} '
-                    sudo rm -rf /var/www/html/* &&
-                    sudo cp -r /home/ubuntu/qa-app/* /var/www/html/ &&
-                    sudo systemctl restart nginx
-                    '
-                """
+                    sh './deploy-qa.sh $QA_HOST $USER $PASS'
+                }
             }
         }
+
+        // ================= PROD APPROVAL =================
+
+        stage('Approval for Production') {
+
+            when {
+                branch 'main'
+            }
+
+            steps {
+                input 'Deploy to Production?'
+            }
+        }
+
+        // ================= PROD =================
 
         stage('Deploy to PROD') {
 
@@ -100,26 +113,25 @@ pipeline {
 
             steps {
 
-                echo "Deploying to PROD"
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'pr-id',
+                        usernameVariable: 'USER',
+                        passwordVariable: 'PASS'
+                    )
+                ]) {
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${PROD_SERVER} '
-                    sudo rm -rf /home/ubuntu/prod-app &&
-                    mkdir -p /home/ubuntu/prod-app
-                    '
-                """
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$PROD_HOST "
+                        sudo rm -rf /home/ubuntu/prod-app &&
+                        mkdir -p /home/ubuntu/prod-app
+                    "
+                    '''
 
-                sh """
-                    scp -o StrictHostKeyChecking=no -r dist/* ${PROD_SERVER}:/home/ubuntu/prod-app
-                """
+                    sh 'chmod +x deploy-prod.sh'
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${PROD_SERVER} '
-                    sudo rm -rf /var/www/html/* &&
-                    sudo cp -r /home/ubuntu/prod-app/* /var/www/html/ &&
-                    sudo systemctl restart nginx
-                    '
-                """
+                    sh './deploy-prod.sh $PROD_HOST $USER $PASS'
+                }
             }
         }
     }
@@ -127,11 +139,11 @@ pipeline {
     post {
 
         success {
-            echo "Pipeline Success"
+            echo 'Pipeline Success'
         }
 
         failure {
-            echo "Pipeline Failed"
+            echo 'Pipeline Failed'
         }
     }
 }
