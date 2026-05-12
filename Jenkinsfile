@@ -2,6 +2,10 @@ pipeline {
 
     agent any
 
+    triggers {
+        pollSCM('H/1 * * * *')
+    }
+
     environment {
         DEV_SERVER  = "ubuntu@3.109.156.48"
         QA_SERVER   = "ubuntu@15.206.184.2"
@@ -9,14 +13,6 @@ pipeline {
     }
 
     stages {
-
-        stage('Clone Repository') {
-            steps {
-                checkout scm
-
-                sh 'echo Current Branch: $BRANCH_NAME'
-            }
-        }
 
         stage('Install Dependencies') {
             steps {
@@ -38,26 +34,24 @@ pipeline {
 
             steps {
 
-                echo "Deploying to DEV"
-
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${DEV_SERVER} '
+                sh '''
+                ssh -o StrictHostKeyChecking=no $DEV_SERVER "
                     sudo rm -rf /home/ubuntu/dev-app &&
                     mkdir -p /home/ubuntu/dev-app
-                    '
-                """
+                "
+                '''
 
-                sh """
-                    scp -o StrictHostKeyChecking=no -r dist/* ${DEV_SERVER}:/home/ubuntu/dev-app
-                """
+                sh '''
+                scp -o StrictHostKeyChecking=no -r dist/* $DEV_SERVER:/home/ubuntu/dev-app
+                '''
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${DEV_SERVER} '
+                sh '''
+                ssh -o StrictHostKeyChecking=no $DEV_SERVER "
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/dev-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
-                    '
-                """
+                "
+                '''
             }
         }
 
@@ -69,26 +63,35 @@ pipeline {
 
             steps {
 
-                echo "Deploying to QA"
-
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${QA_SERVER} '
+                sh '''
+                ssh -o StrictHostKeyChecking=no $QA_SERVER "
                     sudo rm -rf /home/ubuntu/qa-app &&
                     mkdir -p /home/ubuntu/qa-app
-                    '
-                """
+                "
+                '''
 
-                sh """
-                    scp -o StrictHostKeyChecking=no -r dist/* ${QA_SERVER}:/home/ubuntu/qa-app
-                """
+                sh '''
+                scp -o StrictHostKeyChecking=no -r dist/* $QA_SERVER:/home/ubuntu/qa-app
+                '''
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${QA_SERVER} '
+                sh '''
+                ssh -o StrictHostKeyChecking=no $QA_SERVER "
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/qa-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
-                    '
-                """
+                "
+                '''
+            }
+        }
+
+        stage('Approval for Production') {
+
+            when {
+                branch 'main'
+            }
+
+            steps {
+                input 'Deploy to Production?'
             }
         }
 
@@ -100,26 +103,24 @@ pipeline {
 
             steps {
 
-                echo "Deploying to PROD"
-
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${PROD_SERVER} '
+                sh '''
+                ssh -o StrictHostKeyChecking=no $PROD_SERVER "
                     sudo rm -rf /home/ubuntu/prod-app &&
                     mkdir -p /home/ubuntu/prod-app
-                    '
-                """
+                "
+                '''
 
-                sh """
-                    scp -o StrictHostKeyChecking=no -r dist/* ${PROD_SERVER}:/home/ubuntu/prod-app
-                """
+                sh '''
+                scp -o StrictHostKeyChecking=no -r dist/* $PROD_SERVER:/home/ubuntu/prod-app
+                '''
 
-                sh """
-                    ssh -o StrictHostKeyChecking=no ${PROD_SERVER} '
+                sh '''
+                ssh -o StrictHostKeyChecking=no $PROD_SERVER "
                     sudo rm -rf /var/www/html/* &&
                     sudo cp -r /home/ubuntu/prod-app/* /var/www/html/ &&
                     sudo systemctl restart nginx
-                    '
-                """
+                "
+                '''
             }
         }
     }
@@ -127,11 +128,11 @@ pipeline {
     post {
 
         success {
-            echo "Pipeline Success"
+            echo 'Pipeline Success'
         }
 
         failure {
-            echo "Pipeline Failed"
+            echo 'Pipeline Failed'
         }
     }
 }
