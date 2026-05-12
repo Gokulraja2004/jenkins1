@@ -25,7 +25,7 @@ pipeline {
             }
         }
 
-        // ================= BUILD DOCKER IMAGE =================
+        // ================= BUILD IMAGE =================
 
         stage('Build Docker Image') {
             steps {
@@ -58,25 +58,10 @@ pipeline {
                     docker save $IMAGE_NAME > react-app.tar
                     '''
 
-                    sh '''
-                    sshpass -p "$PASS" scp -o StrictHostKeyChecking=no react-app.tar $USER@$DEV_HOST:/home/ubuntu
-                    '''
+                    sh 'chmod +x deploy-dev.sh'
 
                     sh '''
-                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$DEV_HOST "
-
-                        docker stop react-dev-container || true &&
-                        docker rm react-dev-container || true &&
-
-                        docker rmi $IMAGE_NAME || true &&
-
-                        docker load < /home/ubuntu/react-app.tar &&
-
-                        docker run -d \
-                        --name react-dev-container \
-                        -p 3000:80 \
-                        $IMAGE_NAME
-                    "
+                    ./deploy-dev.sh $DEV_HOST $USER $PASS
                     '''
                 }
             }
@@ -104,25 +89,10 @@ pipeline {
                     docker save $IMAGE_NAME > react-app.tar
                     '''
 
-                    sh '''
-                    sshpass -p "$PASS" scp -o StrictHostKeyChecking=no react-app.tar $USER@$QA_HOST:/home/ubuntu
-                    '''
+                    sh 'chmod +x deploy-qa.sh'
 
                     sh '''
-                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$QA_HOST "
-
-                        docker stop react-qa-container || true &&
-                        docker rm react-qa-container || true &&
-
-                        docker rmi $IMAGE_NAME || true &&
-
-                        docker load < /home/ubuntu/react-app.tar &&
-
-                        docker run -d \
-                        --name react-qa-container \
-                        -p 3000:80 \
-                        $IMAGE_NAME
-                    "
+                    ./deploy-qa.sh $QA_HOST $USER $PASS
                     '''
                 }
             }
@@ -163,25 +133,10 @@ pipeline {
                     docker save $IMAGE_NAME > react-app.tar
                     '''
 
-                    sh '''
-                    sshpass -p "$PASS" scp -o StrictHostKeyChecking=no react-app.tar $USER@$PROD_HOST:/home/ubuntu
-                    '''
+                    sh 'chmod +x deploy-prod.sh'
 
                     sh '''
-                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$PROD_HOST "
-
-                        docker stop react-prod-container || true &&
-                        docker rm react-prod-container || true &&
-
-                        docker rmi $IMAGE_NAME || true &&
-
-                        docker load < /home/ubuntu/react-app.tar &&
-
-                        docker run -d \
-                        --name react-prod-container \
-                        -p 3000:80 \
-                        $IMAGE_NAME
-                    "
+                    ./deploy-prod.sh $PROD_HOST $USER $PASS
                     '''
                 }
             }
