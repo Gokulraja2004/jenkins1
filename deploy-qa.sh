@@ -1,0 +1,16 @@
+HOST=$1
+USER=$2
+PASS=$3
+
+sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$HOST "
+    sudo rm -rf /home/ubuntu/qa-app &&
+    mkdir -p /home/ubuntu/qa-app
+"
+
+sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -r dist/* $USER@$HOST:/home/ubuntu/qa-app
+
+sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$HOST "
+    sudo rm -rf /var/www/html/* &&
+    sudo cp -r /home/ubuntu/qa-app/* /var/www/html/ &&
+    sudo systemctl restart nginx
+"
