@@ -6,23 +6,19 @@ pipeline {
         pollSCM('H/1 * * * *')
     }
 
-   environment {
-    DEV_HOST  = credentials('dev-host')
-    QA_HOST   = credentials('qa-host')
-    PROD_HOST = credentials('prod-host')
-}
+    environment {
+        DEV_HOST  = credentials('dev-host')
+        QA_HOST   = credentials('qa-host')
+        PROD_HOST = credentials('prod-host')
+    }
 
     stages {
-
-        // ================= INSTALL =================
 
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
-
-        // ================= BUILD =================
 
         stage('Build React App') {
             steps {
@@ -57,9 +53,7 @@ pipeline {
 
                     sh 'chmod +x deploy-dev.sh'
 
-                    sh '''
-                    ./deploy-dev.sh $DEV_HOST $USER $PASS
-                    '''
+                    sh './deploy-dev.sh $DEV_HOST $USER $PASS'
                 }
             }
         }
@@ -91,9 +85,7 @@ pipeline {
 
                     sh 'chmod +x deploy-qa.sh'
 
-                    sh '''
-                    ./deploy-qa.sh $QA_HOST $USER $PASS
-                    '''
+                    sh './deploy-qa.sh $QA_HOST $USER $PASS'
                 }
             }
         }
@@ -138,9 +130,7 @@ pipeline {
 
                     sh 'chmod +x deploy-prod.sh'
 
-                    sh '''
-                    ./deploy-prod.sh $PROD_HOST $USER $PASS
-                    '''
+                    sh './deploy-prod.sh $PROD_HOST $USER $PASS'
                 }
             }
         }
