@@ -6,11 +6,11 @@ pipeline {
         pollSCM('H/1 * * * *')
     }
 
-    environment {
-        DEV_HOST  = "3.109.156.48"
-        QA_HOST   = "15.206.184.2"
-        PROD_HOST = "52.66.225.201"
-    }
+   environment {
+    DEV_HOST  = credentials('dev-host')
+    QA_HOST   = credentials('qa-host')
+    PROD_HOST = credentials('prod-host')
+}
 
     stages {
 
