@@ -1,11 +1,17 @@
-FROM jenkins/jenkins:lts
+FROM node:20 AS build
 
-USER root
+WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y curl docker.io sshpass
+COPY package*.json ./
 
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
+RUN npm install
 
-USER jenkins
+COPY . .
+
+RUN npm run build
+
+FROM nginx:latest
+
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
