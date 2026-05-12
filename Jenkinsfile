@@ -170,8 +170,7 @@ pipeline {
                     sh '''
                     sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$PROD_HOST "
 
-                        docker stop react-prod-container || true &&
-                        docker rm react-prod-container || true &&
+                       
 
                         docker rmi $IMAGE_NAME || true &&
 
