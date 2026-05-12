@@ -14,15 +14,11 @@ pipeline {
 
     stages {
 
-        // ================= INSTALL =================
-
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
-
-        // ================= BUILD =================
 
         stage('Build React App') {
             steps {
@@ -40,21 +36,27 @@ pipeline {
 
             steps {
 
-                sshagent(credentials: ['dev-server-key']) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dev-id',
+                        usernameVariable: 'USER',
+                        passwordVariable: 'PASS'
+                    )
+                ]) {
 
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@$DEV_HOST "
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$DEV_HOST "
                         sudo rm -rf /home/ubuntu/dev-app &&
                         mkdir -p /home/ubuntu/dev-app
                     "
                     '''
 
                     sh '''
-                    scp -o StrictHostKeyChecking=no -r dist/* ubuntu@$DEV_HOST:/home/ubuntu/dev-app
+                    sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -r dist/* $USER@$DEV_HOST:/home/ubuntu/dev-app
                     '''
 
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@$DEV_HOST "
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$DEV_HOST "
                         sudo rm -rf /var/www/html/* &&
                         sudo cp -r /home/ubuntu/dev-app/* /var/www/html/ &&
                         sudo systemctl restart nginx
@@ -74,21 +76,27 @@ pipeline {
 
             steps {
 
-                sshagent(credentials: ['qa-id']) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'qa2-id',
+                        usernameVariable: 'USER',
+                        passwordVariable: 'PASS'
+                    )
+                ]) {
 
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@$QA_HOST "
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$QA_HOST "
                         sudo rm -rf /home/ubuntu/qa-app &&
                         mkdir -p /home/ubuntu/qa-app
                     "
                     '''
 
                     sh '''
-                    scp -o StrictHostKeyChecking=no -r dist/* ubuntu@$QA_HOST:/home/ubuntu/qa-app
+                    sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -r dist/* $USER@$QA_HOST:/home/ubuntu/qa-app
                     '''
 
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@$QA_HOST "
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$QA_HOST "
                         sudo rm -rf /var/www/html/* &&
                         sudo cp -r /home/ubuntu/qa-app/* /var/www/html/ &&
                         sudo systemctl restart nginx
@@ -98,7 +106,7 @@ pipeline {
             }
         }
 
-        // ================= PROD APPROVAL =================
+        // ================= PROD =================
 
         stage('Approval for Production') {
 
@@ -111,8 +119,6 @@ pipeline {
             }
         }
 
-        // ================= PROD =================
-
         stage('Deploy to PROD') {
 
             when {
@@ -121,21 +127,27 @@ pipeline {
 
             steps {
 
-                sshagent(credentials: ['prod-id']) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'pr-id',
+                        usernameVariable: 'USER',
+                        passwordVariable: 'PASS'
+                    )
+                ]) {
 
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST "
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$PROD_HOST "
                         sudo rm -rf /home/ubuntu/prod-app &&
                         mkdir -p /home/ubuntu/prod-app
                     "
                     '''
 
                     sh '''
-                    scp -o StrictHostKeyChecking=no -r dist/* ubuntu@$PROD_HOST:/home/ubuntu/prod-app
+                    sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -r dist/* $USER@$PROD_HOST:/home/ubuntu/prod-app
                     '''
 
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST "
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$PROD_HOST "
                         sudo rm -rf /var/www/html/* &&
                         sudo cp -r /home/ubuntu/prod-app/* /var/www/html/ &&
                         sudo systemctl restart nginx
