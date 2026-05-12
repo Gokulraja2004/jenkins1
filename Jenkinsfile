@@ -48,6 +48,13 @@ pipeline {
                     )
                 ]) {
 
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$DEV_HOST "
+                        sudo rm -rf /home/ubuntu/dev-app &&
+                        mkdir -p /home/ubuntu/dev-app
+                    "
+                    '''
+
                     sh 'chmod +x deploy-dev.sh'
 
                     sh '''
@@ -74,6 +81,13 @@ pipeline {
                         passwordVariable: 'PASS'
                     )
                 ]) {
+
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$QA_HOST "
+                        sudo rm -rf /home/ubuntu/qa-app &&
+                        mkdir -p /home/ubuntu/qa-app
+                    "
+                    '''
 
                     sh 'chmod +x deploy-qa.sh'
 
@@ -114,6 +128,13 @@ pipeline {
                         passwordVariable: 'PASS'
                     )
                 ]) {
+
+                    sh '''
+                    sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no $USER@$PROD_HOST "
+                        sudo rm -rf /home/ubuntu/prod-app &&
+                        mkdir -p /home/ubuntu/prod-app
+                    "
+                    '''
 
                     sh 'chmod +x deploy-prod.sh'
 
